@@ -10,21 +10,26 @@ import (
     "gorm.io/gorm"
     "os"
     "fmt"
+    "time"
 )
 
 func main() {
     // Load environment variables
     if err := godotenv.Load(); err != nil {
-        log.Fatalf("Error loading .env file")
+        log.Fatalf("Error loading .env file: %v", err)
     }
 
+    // Get the issuer URL from the environment variables
     issuerURL := os.Getenv("AUTH0_ISSUER_BASE_URL")
     if issuerURL == "" {
-        log.Fatal("AUTH0_ISSUER_BASE_URL is not set in environment variables")
+        log.Fatal("AUTH0_ISSUER_BASE_URL is not set in the environment variables")
     }
-    middleware.InitializeJWTMiddleware(issuerURL)
 
-    // Database connection without migration or table check
+    // Initialize the JWT Middleware with your Auth0 issuer URL
+    middleware.InitializeJWTMiddleware(issuerURL)
+    log.Println("JWT Middleware initialized successfully.")
+
+    // Database connection setup
     dsn := fmt.Sprintf(
         "host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
         os.Getenv("DB_HOST"),
@@ -36,13 +41,31 @@ func main() {
         os.Getenv("DB_TIMEZONE"),
     )
 
-    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+        PrepareStmt: true, // Optional: Set to true if you want to use prepared statements
+    })
     if err != nil {
         log.Fatalf("Failed to connect to the database: %v", err)
     }
 
-    // Set up routes and start the server
+    // Configure connection pool settings
+    sqlDB, err := db.DB()
+    if err != nil {
+        log.Fatalf("Failed to get DB from GORM: %v", err)
+    }
+    sqlDB.SetMaxIdleConns(10)         // Set the maximum number of idle connections
+    sqlDB.SetMaxOpenConns(100)        // Set the maximum number of open connections
+    sqlDB.SetConnMaxLifetime(time.Hour) // Set the maximum lifetime of a connection
+
+    log.Println("Database connection established successfully.")
+
+    // Setup routes
     router := gin.Default()
     routes.UserRoutes(router, db)
-    router.Run(":8080")
+
+    // Start the server
+    log.Println("Starting server on port :8080")
+    if err := router.Run(":8080"); err != nil {
+        log.Fatalf("Failed to run server: %v", err)
+    }
 }
