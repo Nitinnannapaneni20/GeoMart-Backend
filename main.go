@@ -50,11 +50,11 @@ func main() {
     }
 
     // Automatically create tables based on the models
-//     err = db.AutoMigrate(&models.Category{}, &models.ProductType{}, &models.ProductData{})
-//     if err != nil {
-//         log.Fatalf("Failed to migrate database: %v", err)
-//     }
-//     log.Println("Database migration completed successfully.")
+    //     err = db.AutoMigrate(&models.Location{})
+    //     if err != nil {
+    //         log.Fatalf("Failed to migrate database: %v", err)
+    //     }
+    //     log.Println("Database migration completed successfully.")
 
     // Configure connection pool settings
     sqlDB, err := db.DB()
@@ -73,6 +73,7 @@ func main() {
     routes.CategoryRoutes(router, db)
     routes.ProductTypeRoutes(router, db)
     routes.ProductRoutes(router, db)
+    routes.LocationRoutes(router, db)
 
     // Start the server
     log.Println("Starting server on port :8080")

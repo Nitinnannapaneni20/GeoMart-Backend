@@ -4,6 +4,10 @@ import (
     "time"
 )
 
+type Location struct{
+    ID   uint   `gorm:"primaryKey"`
+    Name string `gorm:"not null;unique"`
+}
 type Category struct {
     ID   uint   `gorm:"primaryKey"`
     Name string `gorm:"not null;unique"`
