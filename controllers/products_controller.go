@@ -10,6 +10,7 @@ import (
 type CreateProductRequest struct {
     CategoryID   uint    `json:"category_id" binding:"required"`
     TypeID       uint    `json:"type_id" binding:"required"`
+    LocationID   uint    `json:"location_id" binding:"required"`
     Name         string  `json:"name" binding:"required"`
     Brand        string  `json:"brand" binding:"required"`
     Quantity     uint    `json:"quantity" binding:"required"`
@@ -28,13 +29,21 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
             return
         }
 
-        // Create the product directly using category_id and type_id
+        // Validate the location by checking if it exists
+        var location models.Location
+        if err := db.First(&location, req.LocationID).Error; err != nil {
+            c.JSON(http.StatusNotFound, gin.H{"error": "Location not found"})
+            return
+        }
+
+        // Create the product directly using category_id, type_id, and location_id
         product := models.ProductData{
             Name:        req.Name,
             Brand:       req.Brand,
             Quantity:    req.Quantity,
             CategoryID:  req.CategoryID,
             TypeID:      req.TypeID,
+            LocationID:  req.LocationID,
             Cost:        req.Cost,
             Description: req.Description,
             ImageURL:    req.ImageURL,

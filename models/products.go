@@ -8,15 +8,18 @@ type Location struct{
     ID   uint   `gorm:"primaryKey"`
     Name string `gorm:"not null;unique"`
 }
+
 type Category struct {
     ID   uint   `gorm:"primaryKey"`
     Name string `gorm:"not null;unique"`
+    LocationID uint   `gorm:"not null"`
 }
 
 type ProductType struct {
     ID         uint   `gorm:"primaryKey"`
     Name       string `gorm:"not null;unique"`
     CategoryID uint   `gorm:"not null"`
+    LocationID uint   `gorm:"not null"`
 }
 
 type ProductData struct {
@@ -26,6 +29,7 @@ type ProductData struct {
     Quantity   uint      `gorm:"not null"`
     CategoryID uint      `gorm:"not null"`
     TypeID     uint      `gorm:"not null"`
+    LocationID  uint      `gorm:"not null"`
     Cost       float64   `gorm:"not null"`
     Description string    `gorm:"not null"`
     Category   Category   `gorm:"foreignKey:CategoryID"`

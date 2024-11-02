@@ -10,6 +10,7 @@ import (
 type CreateProductTypeRequest struct {
     Name       string `json:"name" binding:"required"`
     CategoryID uint   `json:"category_id" binding:"required"`
+    LocationID uint   `json:"location_id" binding:"required"`
 }
 
 // CreateProductType creates a new product type
@@ -23,22 +24,29 @@ func CreateProductType(db *gorm.DB) gin.HandlerFunc {
             return
         }
 
-        // Check if the category exists
-        var category models.Category
-        if err := db.First(&category, req.CategoryID).Error; err != nil {
-            c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
+        // Check if the location exists
+        var location models.Location
+        if err := db.First(&location, req.LocationID).Error; err != nil {
+            c.JSON(http.StatusNotFound, gin.H{"error": "Location not found"})
             return
         }
 
-        // Check if the product type already exists under the given category
+        // Check if the category exists within the specified location
+        var category models.Category
+        if err := db.Where("id = ? AND location_id = ?", req.CategoryID, req.LocationID).First(&category).Error; err != nil {
+            c.JSON(http.StatusNotFound, gin.H{"error": "Category not found in the specified location"})
+            return
+        }
+
+        // Check if the product type already exists under the given category and location
         var productType models.ProductType
-        if err := db.Where("name = ? AND category_id = ?", req.Name, req.CategoryID).First(&productType).Error; err == nil {
-            c.JSON(http.StatusConflict, gin.H{"error": "Product type already exists under this category"})
+        if err := db.Where("name = ? AND category_id = ? AND location_id = ?", req.Name, req.CategoryID, req.LocationID).First(&productType).Error; err == nil {
+            c.JSON(http.StatusConflict, gin.H{"error": "Product type already exists under this category in the specified location"})
             return
         }
 
         // Create new product type
-        productType = models.ProductType{Name: req.Name, CategoryID: req.CategoryID}
+        productType = models.ProductType{Name: req.Name, CategoryID: req.CategoryID, LocationID: req.LocationID}
         if err := db.Create(&productType).Error; err != nil {
             c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create product type"})
             return
