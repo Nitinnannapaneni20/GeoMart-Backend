@@ -10,6 +10,8 @@ func SetupRoutes(db *gorm.DB) *gin.Engine {
     router := gin.Default()
 
     UserRoutes(router, db)
-
+    CategoryRoutes(router, db)
+    ProductTypeRoutes(router, db)
+    ProductRoutes(router, db)
     return router
 }
