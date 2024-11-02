@@ -11,6 +11,7 @@ import (
     "os"
     "fmt"
     "time"
+//     "GeoMart-Backend/models" // Make sure to import your models package
 )
 
 func main() {
@@ -42,11 +43,18 @@ func main() {
     )
 
     db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-        PrepareStmt: true, // Optional: Set to true if you want to use prepared statements
+                PrepareStmt: false,
     })
     if err != nil {
         log.Fatalf("Failed to connect to the database: %v", err)
     }
+
+    // Automatically create tables based on the models
+    //     err = db.AutoMigrate(&models.Location{})
+    //     if err != nil {
+    //         log.Fatalf("Failed to migrate database: %v", err)
+    //     }
+    //     log.Println("Database migration completed successfully.")
 
     // Configure connection pool settings
     sqlDB, err := db.DB()
@@ -62,6 +70,10 @@ func main() {
     // Setup routes
     router := gin.Default()
     routes.UserRoutes(router, db)
+    routes.CategoryRoutes(router, db)
+    routes.ProductTypeRoutes(router, db)
+    routes.ProductRoutes(router, db)
+    routes.LocationRoutes(router, db)
 
     // Start the server
     log.Println("Starting server on port :8080")
