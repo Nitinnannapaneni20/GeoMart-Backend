@@ -43,7 +43,7 @@ func CreateLocation(db *gorm.DB) gin.HandlerFunc {
 func FetchLocation(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
         var locations []models.Location
-        if err := db.Find(&locations).Error; err != nil {
+        if err := db.Raw("SELECT * FROM locations").Scan(&locations).Error; err != nil {
             c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
             return
         }
