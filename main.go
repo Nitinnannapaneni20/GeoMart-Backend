@@ -6,12 +6,13 @@ import (
     "GeoMart-Backend/middleware"
     "github.com/joho/godotenv"
     "github.com/gin-gonic/gin"
+    "github.com/gin-contrib/cors"
     "gorm.io/driver/postgres"
     "gorm.io/gorm"
+    "gorm.io/gorm/logger"
     "os"
     "fmt"
     "time"
-//     "GeoMart-Backend/models" // Make sure to import your models package
 )
 
 func main() {
@@ -42,8 +43,11 @@ func main() {
         os.Getenv("DB_TIMEZONE"),
     )
 
-    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-                PrepareStmt: false,
+    db, err := gorm.Open(postgres.New(postgres.Config{
+        DSN:                  dsn,
+        PreferSimpleProtocol: true, // ✅ This disables prepared statement caching
+    }), &gorm.Config{
+        Logger: logger.Default.LogMode(logger.Info),
     })
     if err != nil {
         log.Fatalf("Failed to connect to the database: %v", err)
@@ -69,6 +73,16 @@ func main() {
 
     // Setup routes
     router := gin.Default()
+
+       // Allow frontend to access backend
+        router.Use(cors.New(cors.Config{
+            AllowOrigins:     []string{"http://localhost:3000"}, // Adjust if your frontend is deployed elsewhere
+            AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+            AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+            AllowCredentials: true,
+            MaxAge:           12 * time.Hour,
+        }))
+
     routes.UserRoutes(router, db)
     routes.CategoryRoutes(router, db)
     routes.ProductTypeRoutes(router, db)
