@@ -11,4 +11,7 @@ import (
 // CategoryRoutes defines routes related to category operations
 func CategoryRoutes(router *gin.Engine, db *gorm.DB) {
     router.POST("/api/create/categories",  middleware.JWTMiddleware(), controllers.CreateCategory(db))
+
+    router.GET("/api/products-data", controllers.GetProductsDataByLocation(db))
+
 }

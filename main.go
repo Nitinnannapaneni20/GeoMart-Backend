@@ -8,10 +8,10 @@ import (
     "github.com/gin-gonic/gin"
     "gorm.io/driver/postgres"
     "gorm.io/gorm"
+    "gorm.io/gorm/logger"
     "os"
     "fmt"
     "time"
-//     "GeoMart-Backend/models" // Make sure to import your models package
 )
 
 func main() {
@@ -42,8 +42,11 @@ func main() {
         os.Getenv("DB_TIMEZONE"),
     )
 
-    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-                PrepareStmt: false,
+    db, err := gorm.Open(postgres.New(postgres.Config{
+        DSN:                  dsn,
+        PreferSimpleProtocol: true, // ✅ This disables prepared statement caching
+    }), &gorm.Config{
+        Logger: logger.Default.LogMode(logger.Info),
     })
     if err != nil {
         log.Fatalf("Failed to connect to the database: %v", err)
