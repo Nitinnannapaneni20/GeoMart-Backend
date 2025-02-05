@@ -6,6 +6,7 @@ import (
     "GeoMart-Backend/middleware"
     "github.com/joho/godotenv"
     "github.com/gin-gonic/gin"
+    "github.com/gin-contrib/cors"
     "gorm.io/driver/postgres"
     "gorm.io/gorm"
     "gorm.io/gorm/logger"
@@ -72,6 +73,16 @@ func main() {
 
     // Setup routes
     router := gin.Default()
+
+       // Allow frontend to access backend
+        router.Use(cors.New(cors.Config{
+            AllowOrigins:     []string{"http://localhost:3000"}, // Adjust if your frontend is deployed elsewhere
+            AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+            AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+            AllowCredentials: true,
+            MaxAge:           12 * time.Hour,
+        }))
+
     routes.UserRoutes(router, db)
     routes.CategoryRoutes(router, db)
     routes.ProductTypeRoutes(router, db)
