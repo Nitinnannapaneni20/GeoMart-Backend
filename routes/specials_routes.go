@@ -6,8 +6,8 @@ import (
     "gorm.io/gorm"
 )
 
-// CategoryRoutes defines routes related to category operations
-func CategoryRoutes(router *gin.Engine, db *gorm.DB) {
+// SpecialsRoutes defines routes related to Special Products
+func SpecialsRoutes(router *gin.Engine, db *gorm.DB) {
 
     router.GET("/api/special-products-data", controllers.GetSpecialsByLocation(db))
 
