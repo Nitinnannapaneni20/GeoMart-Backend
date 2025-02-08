@@ -4,6 +4,7 @@ import (
     "log"
     "GeoMart-Backend/routes"
     "GeoMart-Backend/middleware"
+    "GeoMart-Backend/models"
     "github.com/joho/godotenv"
     "github.com/gin-gonic/gin"
     "github.com/gin-contrib/cors"
