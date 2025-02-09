@@ -38,3 +38,17 @@ type ProductData struct {
     CreatedAt  time.Time `gorm:"autoCreateTime"`
     UpdatedAt  time.Time `gorm:"autoUpdateTime"`
 }
+
+type Specials struct {
+    ID         uint       `gorm:"primaryKey"`
+    ProductID  uint       `gorm:"not null"`
+    LocationID uint       `gorm:"not null"`
+    Discount   float64    `gorm:"not null"`
+    StartDate  time.Time  `gorm:"not null"`
+    EndDate    time.Time  `gorm:"not null"`
+    Description string    `gorm:"not null"`
+    Product    ProductData `gorm:"foreignKey:ProductID"`
+    Location   Location   `gorm:"foreignKey:LocationID"`
+    CreatedAt  time.Time  `gorm:"autoCreateTime"`
+    UpdatedAt  time.Time  `gorm:"autoUpdateTime"`
+}
