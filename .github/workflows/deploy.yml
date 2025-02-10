@@ -1,0 +1,50 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - main  # Runs when pushing to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t nitinchowdarynannapaneni/geomart-backend:latest .
+          docker push nitinchowdarynannapaneni/geomart-backend:latest
+
+      - name: Deploy to EC2
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+            docker login -u "nitinchowdarynannapaneni" -p "${{ secrets.DOCKER_HUB_PASSWORD }}"
+
+            # Ensure .env file exists on EC2
+            echo "AUTH0_ISSUER_BASE_URL=${{ secrets.AUTH0_ISSUER_BASE_URL }}" > /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_HOST=${{ secrets.DB_HOST }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_USER=${{ secrets.DB_USER }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_NAME=${{ secrets.DB_NAME }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_PORT=${{ secrets.DB_PORT }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_SSLMODE=${{ secrets.DB_SSLMODE }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_TIMEZONE=${{ secrets.DB_TIMEZONE }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}" >> /home/ubuntu/GeoMart-Backend/.env
+
+            # Pull the latest Docker image
+            docker pull nitinchowdarynannapaneni/geomart-backend:latest
+            docker stop geomart-backend || true
+            docker rm geomart-backend || true
+
+            # Run the backend container with the .env file
+            docker run --env-file /home/ubuntu/GeoMart-Backend/.env -d -p 8080:8080 --name geomart-backend nitinchowdarynannapaneni/geomart-backend:latest
+          EOF
+          rm -f private_key.pem
