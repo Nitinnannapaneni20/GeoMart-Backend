@@ -39,46 +39,54 @@ jobs:
             # Clean up old Docker resources
             docker system prune -af || true
 
-            # Ensure backend directory exists
+            # Create app directory
             mkdir -p /home/ubuntu/GeoMart-Backend
 
-            # Create .env file with proper heredoc syntax
+            # Create .env file
             cat > /home/ubuntu/GeoMart-Backend/.env << 'ENDENV'
-          AUTH0_ISSUER_BASE_URL=${{ secrets.AUTH0_ISSUER_BASE_URL }}
-          DB_HOST=${{ secrets.DB_HOST }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_PORT=${{ secrets.DB_PORT }}
-          DB_SSLMODE=${{ secrets.DB_SSLMODE }}
-          DB_TIMEZONE=${{ secrets.DB_TIMEZONE }}
-          AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}
-          ENDENV
-          
-          # Secure the .env file
-          chmod 600 /home/ubuntu/GeoMart-Backend/.env
-          
-          # Docker operations
-          docker pull nitinchowdarynannapaneni/geomart-backend:latest
-          docker stop geomart-backend || true
-          docker rm geomart-backend || true
-          
-          # Run with proper error handling
-          if ! docker run --env-file /home/ubuntu/GeoMart-Backend/.env -d \
-          -p 8080:8080 \
-          --name geomart-backend \
-          --restart unless-stopped \
-          nitinchowdarynannapaneni/geomart-backend:latest; then
-          echo "Failed to start container"
-          exit 1
-          fi
-          
-          # Verify deployment
-          sleep 10
-          if ! docker ps | grep -q "geomart-backend"; then
-          echo "Deployment verification failed - container is not running"
-          docker logs geomart-backend
-          exit 1
-          fi
-          ENDSSH
-          rm -f private_key.pem
+            AUTH0_ISSUER_BASE_URL=${{ secrets.AUTH0_ISSUER_BASE_URL }}
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_SSLMODE=${{ secrets.DB_SSLMODE }}
+            DB_TIMEZONE=${{ secrets.DB_TIMEZONE }}
+            AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}
+            ENDENV
+            
+            # Secure the .env file
+            chmod 600 /home/ubuntu/GeoMart-Backend/.env
+            
+            # Docker operations
+            docker pull nitinchowdarynannapaneni/geomart-backend:latest
+            docker stop geomart-backend || true
+            docker rm geomart-backend || true
+            
+            # Run with environment file and working directory set
+            if ! docker run -d \
+            --name geomart-backend \
+            -p 8080:8080 \
+            --restart unless-stopped \
+            --workdir /app \
+            --env-file /home/ubuntu/GeoMart-Backend/.env \
+            nitinchowdarynannapaneni/geomart-backend:latest; then
+            echo "Failed to start container"
+            exit 1
+            fi
+            
+            # Wait for container to initialize
+            sleep 10
+            
+            # Check container status and logs
+            if ! docker ps | grep -q "geomart-backend"; then
+            echo "Container failed to start. Checking logs..."
+            docker logs geomart-backend
+            exit 1
+            fi
+            
+            # Show recent logs for verification
+            echo "Container started. Recent logs:"
+            docker logs geomart-backend --tail 20
+            ENDSSH
+            rm -f private_key.pem
