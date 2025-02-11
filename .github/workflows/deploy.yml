@@ -26,9 +26,15 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
           chmod 600 private_key.pem
           ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-            docker login -u "nitinchowdarynannapaneni" -p "${{ secrets.DOCKER_HUB_PASSWORD }}"
+            set -e  # Stop execution if any command fails
 
-            # Ensure .env file exists on EC2
+            # Secure Docker login
+            echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "nitinchowdarynannapaneni" --password-stdin
+
+            # Clean up old Docker resources
+            docker system prune -af || true
+
+            # Ensure .env file exists and update values
             echo "AUTH0_ISSUER_BASE_URL=${{ secrets.AUTH0_ISSUER_BASE_URL }}" > /home/ubuntu/GeoMart-Backend/.env
             echo "DB_HOST=${{ secrets.DB_HOST }}" >> /home/ubuntu/GeoMart-Backend/.env
             echo "DB_USER=${{ secrets.DB_USER }}" >> /home/ubuntu/GeoMart-Backend/.env
