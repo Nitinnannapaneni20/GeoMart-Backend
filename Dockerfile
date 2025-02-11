@@ -11,7 +11,9 @@ RUN go mod download
 # Copy the entire source code into the container
 COPY . .
 
-# Build the Go binary
+# ✅ Copy .env file into the container
+COPY .env /app/.env
+
 RUN go build -o backend ./main.go
 
 # Expose the API port

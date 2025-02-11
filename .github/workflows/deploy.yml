@@ -51,6 +51,6 @@ jobs:
             docker rm geomart-backend || true
 
             # Run the backend container with the .env file
-            docker run --env-file /home/ubuntu/GeoMart-Backend/.env -d -p 8080:8080 --name geomart-backend nitinchowdarynannapaneni/geomart-backend:latest
+            docker run --env-file /home/ubuntu/GeoMart-Backend/.env -v /home/ubuntu/GeoMart-Backend/.env:/app/.env -d -p 8080:8080 --name geomart-backend nitinchowdarynannapaneni/geomart-backend:latest
           EOF
           rm -f private_key.pem
