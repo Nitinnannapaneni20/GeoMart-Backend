@@ -76,7 +76,7 @@ func main() {
 
        // Allow frontend to access backend
         router.Use(cors.New(cors.Config{
-            AllowOrigins:     []string{"http://18.130.34.218", "http://localhost:3000"},
+            AllowOrigins:     []string{"http://13.40.3.183", "http://localhost:3000"},
             AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
             AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
             AllowCredentials: true,

@@ -42,8 +42,8 @@ jobs:
             # Create app directory
             mkdir -p /home/ubuntu/GeoMart-Backend
 
-            # Create .env file
-            cat > /home/ubuntu/GeoMart-Backend/.env << 'ENDENV'
+            # Create clean .env file without extra whitespace
+            cat > /home/ubuntu/GeoMart-Backend/.env << 'EOF'
             AUTH0_ISSUER_BASE_URL=${{ secrets.AUTH0_ISSUER_BASE_URL }}
             DB_HOST=${{ secrets.DB_HOST }}
             DB_USER=${{ secrets.DB_USER }}
@@ -53,39 +53,41 @@ jobs:
             DB_SSLMODE=${{ secrets.DB_SSLMODE }}
             DB_TIMEZONE=${{ secrets.DB_TIMEZONE }}
             AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}
-            ENDENV
+            EOF
             
             # Secure the .env file
             chmod 600 /home/ubuntu/GeoMart-Backend/.env
             
-            # Docker operations
-            docker pull nitinchowdarynannapaneni/geomart-backend:latest
+            # Stop and remove existing container
             docker stop geomart-backend || true
             docker rm geomart-backend || true
             
-            # Run with environment file and working directory set
+            # Pull latest image
+            docker pull nitinchowdarynannapaneni/geomart-backend:latest
+            
+            # Run with volume mounted .env file
             if ! docker run -d \
             --name geomart-backend \
             -p 8080:8080 \
             --restart unless-stopped \
-            --workdir /app \
-            --env-file /home/ubuntu/GeoMart-Backend/.env \
+            -v /home/ubuntu/GeoMart-Backend/.env:/app/.env \
             nitinchowdarynannapaneni/geomart-backend:latest; then
             echo "Failed to start container"
+            docker logs geomart-backend
             exit 1
             fi
             
             # Wait for container to initialize
             sleep 10
             
-            # Check container status and logs
+            # Verify deployment
             if ! docker ps | grep -q "geomart-backend"; then
             echo "Container failed to start. Checking logs..."
             docker logs geomart-backend
             exit 1
             fi
             
-            # Show recent logs for verification
+            # Show logs to verify successful startup
             echo "Container started. Recent logs:"
             docker logs geomart-backend --tail 20
             ENDSSH
