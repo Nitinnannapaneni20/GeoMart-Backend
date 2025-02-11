@@ -12,6 +12,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+      - name: Debug Docker Login
+        run: |
+          echo "Docker Hub Username: ${{ secrets.DOCKER_HUB_USERNAME }}"
+          echo "Docker Hub Password Length: ${#secrets.DOCKER_HUB_PASSWORD}}" # Check if password is empty
+          echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
