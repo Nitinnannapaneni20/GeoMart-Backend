@@ -4,7 +4,6 @@ import (
     "log"
     "GeoMart-Backend/routes"
     "GeoMart-Backend/middleware"
-    "GeoMart-Backend/models"
     "github.com/joho/godotenv"
     "github.com/gin-gonic/gin"
     "github.com/gin-contrib/cors"
@@ -92,7 +91,7 @@ func main() {
     routes.SpecialsRoutes(router, db)
     // Start the server
     log.Println("Starting server on port :8080")
-    if err := router.Run(":8080"); err != nil {
+    if err := router.Run("0.0.0.0:8080"); err != nil {
         log.Fatalf("Failed to run server: %v", err)
     }
 }
