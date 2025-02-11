@@ -1,22 +1,21 @@
-# Use the official Golang image as a builder
-FROM golang:1.23 AS builder
+# Use an official Golang image as the base
+FROM golang:1.23
+
 # Set working directory inside the container
 WORKDIR /app
-# Copy the Go modules files
+
+# Copy go modules files and install dependencies
 COPY go.mod go.sum ./
-# Download dependencies
-RUN go mod tidy
-# Copy the source code
+RUN go mod download
+
+# Copy the entire source code into the container
 COPY . .
+
 # Build the Go binary
-RUN go build -o backend
-# Use a minimal image for the final container
-FROM alpine:latest
-# Set working directory inside the container
-WORKDIR /app
-# Copy the built Go binary from the builder stage
-COPY --from=builder /app/backend .
+RUN go build -o backend ./main.go
+
 # Expose the API port
 EXPOSE 8080
+
 # Run the backend application
 CMD ["./backend"]
