@@ -56,8 +56,7 @@ jobs:
             docker pull nitinchowdarynannapaneni/geomart-backend:latest
 
             # Run the container with environment variables
-            docker run --env-file /home/ubuntu/GeoMart-Backend/.env -d -p 8080:8080 --name geomart-backend nitinchowdarynannapaneni/geomart-backend:latest
-
+            docker run --env-file /home/ubuntu/GeoMart-Backend/.env -v /home/ubuntu/GeoMart-Backend/.env:/app/.env -d -p 8080:8080 --name geomart-backend nitinchowdarynannapaneni/geomart-backend:latest
             # Wait for the container to start
             sleep 10
 
