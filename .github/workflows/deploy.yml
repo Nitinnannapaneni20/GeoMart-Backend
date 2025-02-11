@@ -13,82 +13,58 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Configure Docker credentials
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
       - name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: nitinchowdarynannapaneni/geomart-backend:latest
+        run: |
+          docker build -t nitinchowdarynannapaneni/geomart-backend:latest .
+          docker push nitinchowdarynannapaneni/geomart-backend:latest
 
       - name: Deploy to EC2
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          echo "$EC2_SSH_KEY" > private_key.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
           chmod 600 private_key.pem
-          ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@$EC2_HOST << 'ENDSSH'
-            set -e
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e  # Exit if any command fails
 
             # Clean up old Docker resources
             docker system prune -af || true
 
-            # Create app directory
+            # Log in securely to Docker Hub
+            echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "nitinchowdarynannapaneni" --password-stdin
+
+            # Ensure backend directory exists
             mkdir -p /home/ubuntu/GeoMart-Backend
 
-            # Create clean .env file without extra whitespace
-            cat > /home/ubuntu/GeoMart-Backend/.env << 'EOF'
-            AUTH0_ISSUER_BASE_URL=${{ secrets.AUTH0_ISSUER_BASE_URL }}
-            DB_HOST=${{ secrets.DB_HOST }}
-            DB_USER=${{ secrets.DB_USER }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_PORT=${{ secrets.DB_PORT }}
-            DB_SSLMODE=${{ secrets.DB_SSLMODE }}
-            DB_TIMEZONE=${{ secrets.DB_TIMEZONE }}
-            AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}
-            EOF
-            
-            # Secure the .env file
-            chmod 600 /home/ubuntu/GeoMart-Backend/.env
-            
-            # Stop and remove existing container
+            # ✅ Create environment variables file
+            echo "AUTH0_ISSUER_BASE_URL=${{ secrets.AUTH0_ISSUER_BASE_URL }}" > /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_HOST=${{ secrets.DB_HOST }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_USER=${{ secrets.DB_USER }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_NAME=${{ secrets.DB_NAME }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_PORT=${{ secrets.DB_PORT }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_SSLMODE=${{ secrets.DB_SSLMODE }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "DB_TIMEZONE=${{ secrets.DB_TIMEZONE }}" >> /home/ubuntu/GeoMart-Backend/.env
+            echo "AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}" >> /home/ubuntu/GeoMart-Backend/.env
+
+            # Remove any existing container
             docker stop geomart-backend || true
             docker rm geomart-backend || true
-            
-            # Pull latest image
+
+            # Pull the latest image
             docker pull nitinchowdarynannapaneni/geomart-backend:latest
-            
-            # Run with volume mounted .env file
-            if ! docker run -d \
-            --name geomart-backend \
-            -p 8080:8080 \
-            --restart unless-stopped \
-            -v /home/ubuntu/GeoMart-Backend/.env:/app/.env \
-            nitinchowdarynannapaneni/geomart-backend:latest; then
-            echo "Failed to start container"
-            docker logs geomart-backend
-            exit 1
-            fi
-            
-            # Wait for container to initialize
+
+            # Run the container with environment variables
+            docker run --env-file /home/ubuntu/GeoMart-Backend/.env -d -p 8080:8080 --name geomart-backend nitinchowdarynannapaneni/geomart-backend:latest
+
+            # Wait for the container to start
             sleep 10
-            
-            # Verify deployment
+
+            # Check if the container is running; fail if not
             if ! docker ps | grep -q "geomart-backend"; then
-            echo "Container failed to start. Checking logs..."
-            docker logs geomart-backend
-            exit 1
+              echo "Deployment failed! Container is not running."
+              exit 1
             fi
-            
-            # Show logs to verify successful startup
-            echo "Container started. Recent logs:"
-            docker logs geomart-backend --tail 20
-            ENDSSH
-            rm -f private_key.pem
+          EOF
+          rm -f private_key.pem
