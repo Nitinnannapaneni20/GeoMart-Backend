@@ -11,6 +11,8 @@ RUN go mod download
 # Copy the entire source code into the container
 COPY . .
 
+COPY .env /app/.env
+
 # Build the Go binary
 RUN go build -o backend ./main.go
 
