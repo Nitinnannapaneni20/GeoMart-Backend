@@ -5,6 +5,7 @@ import (
     "GeoMart-Backend/models"
     "github.com/gin-gonic/gin"
     "gorm.io/gorm"
+    "fmt"
 )
 
 func SyncUser(db *gorm.DB) gin.HandlerFunc {
@@ -17,6 +18,11 @@ func SyncUser(db *gorm.DB) gin.HandlerFunc {
 
         if err := c.BindJSON(&body); err != nil {
             c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+            return
+        }
+
+        if body.Auth0ID == "" || body.Email == "" {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required Auth0 user info"})
             return
         }
 
@@ -33,10 +39,13 @@ func SyncUser(db *gorm.DB) gin.HandlerFunc {
                     c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
                     return
                 }
+                fmt.Println("New user created:", user)
             } else {
                 c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
                 return
             }
+        } else {
+            fmt.Println("User already exists:", user)
         }
 
         c.JSON(http.StatusOK, user)
