@@ -9,6 +9,9 @@ import (
 
 // UserRoutes defines routes related to user operations
 func UserRoutes(router *gin.Engine, db *gorm.DB) {
-    // Protect the /api/user_data route with JWT middleware
+
     router.GET("/api/user_data", middleware.JWTMiddleware(), controllers.GetUserData(db))
+    router.POST("/api/profile/create-if-not-exist", controllers.CreateUserIfNotExists(db))
+    router.GET("/api/profile/:sub", controllers.GetUserBySub(db))
+    router.POST("/api/profile/update", controllers.UpdateUserProfile(db))
 }
