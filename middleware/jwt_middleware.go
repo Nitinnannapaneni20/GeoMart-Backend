@@ -4,11 +4,11 @@ import (
     "fmt"
     "net/http"
     "time"
+    "os"
 
     "github.com/gin-gonic/gin"
     "github.com/golang-jwt/jwt/v4"
     "github.com/MicahParks/keyfunc"
-    "os"
 )
 
 // JWKS for fetching Auth0's public keys
@@ -34,20 +34,30 @@ func InitializeJWTMiddleware(issuerURL string) {
     fmt.Println("JWKS initialized successfully.")
 }
 
-// JWTMiddleware validates the JWT and protects routes
+// JWTMiddleware validates the JWT from Authorization header OR secure cookie
 func JWTMiddleware() gin.HandlerFunc {
     return func(c *gin.Context) {
-        // Extract the token from the Authorization header
-        tokenString := c.GetHeader("Authorization")
-        if tokenString == "" {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
-            c.Abort()
-            return
+        tokenString := ""
+
+        // 1. Check Authorization header
+        authHeader := c.GetHeader("Authorization")
+        if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+            tokenString = authHeader[7:]
         }
 
-        // Remove "Bearer " prefix if it exists
-        if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-            tokenString = tokenString[7:]
+        // 2. If not found, try cookie (used by Auth0 session flow)
+        if tokenString == "" {
+            cookie, err := c.Cookie("appSession") // 🔁 Change this if your Auth0 cookie is named differently
+            if err == nil {
+                tokenString = cookie
+            }
+        }
+
+        // If still no token, reject
+        if tokenString == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing token in header or cookie"})
+            c.Abort()
+            return
         }
 
         // Parse and validate the JWT
@@ -58,9 +68,9 @@ func JWTMiddleware() gin.HandlerFunc {
             return
         }
 
-        // Check for audience claim if needed
+        // Optional audience claim check
         if claims, ok := token.Claims.(jwt.MapClaims); ok {
-            audience := os.Getenv("AUTH0_AUDIENCE") // Get audience from environment variables
+            audience := os.Getenv("AUTH0_AUDIENCE")
             if audience != "" {
                 if audList, ok := claims["aud"].([]interface{}); ok {
                     validAud := false
@@ -83,7 +93,7 @@ func JWTMiddleware() gin.HandlerFunc {
             return
         }
 
-        // Token is valid; continue to the next handler
+        c.Set("user", token)
         c.Next()
     }
 }
