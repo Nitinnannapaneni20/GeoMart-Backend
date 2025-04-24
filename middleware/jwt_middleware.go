@@ -36,44 +36,34 @@ func InitializeJWTMiddleware(issuerURL string) {
 // JWTMiddleware validates the JWT from the appSession cookie (not from header)
 func JWTMiddleware() gin.HandlerFunc {
     return func(c *gin.Context) {
-        // Check for appSession cookie
-        cookie, err := c.Cookie("appSession")  // Default Auth0 session cookie name
-        if err != nil {
+        // First: try Authorization header
+        tokenStr := ""
+        authHeader := c.GetHeader("Authorization")
+        if authHeader != "" && len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+            tokenStr = authHeader[7:]
+        }
+
+        // If not found in header, try appSession cookie
+        if tokenStr == "" {
+            cookie, err := c.Cookie("appSession")
+            if err == nil {
+                tokenStr = cookie
+            }
+        }
+
+        if tokenStr == "" {
             c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No token provided"})
             c.Abort()
             return
         }
 
-        // Parse and validate the JWT from the appSession cookie
-        token, err := jwt.Parse(cookie, jwks.Keyfunc)
+        token, err := jwt.Parse(tokenStr, jwks.Keyfunc)
         if err != nil || !token.Valid {
             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
             c.Abort()
             return
         }
 
-        // Optional: audience claim validation (if needed)
-        if claims, ok := token.Claims.(jwt.MapClaims); ok {
-            audience := os.Getenv("AUTH0_AUDIENCE")
-            if audience != "" {
-                if audList, ok := claims["aud"].([]interface{}); ok {
-                    validAud := false
-                    for _, aud := range audList {
-                        if aud == audience {
-                            validAud = true
-                            break
-                        }
-                    }
-                    if !validAud {
-                        c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid audience"})
-                        c.Abort()
-                        return
-                    }
-                }
-            }
-        }
-
-        // Token is valid; continue to the next handler
         c.Set("user", token)
         c.Next()
     }
