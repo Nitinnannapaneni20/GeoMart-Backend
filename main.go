@@ -75,13 +75,13 @@ func main() {
     router := gin.Default()
 
        // Allow frontend to access backend
-        router.Use(cors.New(cors.Config{
-            AllowOrigins:     []string{"*"},
-            AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
-            AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-            AllowCredentials: true,
-            MaxAge:           12 * time.Hour,
-        }))
+    router.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"https://geomart.co.uk", "http://localhost:3000"},
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+        AllowCredentials: true, // ✅ Send cookies/session
+        MaxAge:           12 * time.Hour,
+    }))
 
     routes.UserRoutes(router, db)
     routes.CategoryRoutes(router, db)
