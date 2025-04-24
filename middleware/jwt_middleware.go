@@ -19,7 +19,6 @@ func InitializeJWTMiddleware(issuerURL string) {
     jwksURL := fmt.Sprintf("%s/.well-known/jwks.json", issuerURL)
     var err error
 
-    // Initialize the JWKS
     jwks, err = keyfunc.Get(jwksURL, keyfunc.Options{
         RefreshErrorHandler: func(err error) {
             fmt.Printf("There was an error with the jwt.Keyfunc\nError: %s\n", err.Error())
@@ -34,33 +33,28 @@ func InitializeJWTMiddleware(issuerURL string) {
     fmt.Println("JWKS initialized successfully.")
 }
 
-// JWTMiddleware validates the JWT from Authorization header (not cookie)
+// JWTMiddleware validates the JWT from the appSession cookie (not from header)
 func JWTMiddleware() gin.HandlerFunc {
     return func(c *gin.Context) {
-        // Extract the token from the Authorization header
-        tokenString := c.GetHeader("Authorization")
-        if tokenString == "" {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
+        // Check for appSession cookie
+        cookie, err := c.Cookie("appSession")  // Default Auth0 session cookie name
+        if err != nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No token provided"})
             c.Abort()
             return
         }
 
-        // Remove "Bearer " prefix if it exists
-        if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-            tokenString = tokenString[7:]
-        }
-
-        // Parse and validate the JWT
-        token, err := jwt.Parse(tokenString, jwks.Keyfunc)
+        // Parse and validate the JWT from the appSession cookie
+        token, err := jwt.Parse(cookie, jwks.Keyfunc)
         if err != nil || !token.Valid {
             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
             c.Abort()
             return
         }
 
-        // Check for audience claim if needed
+        // Optional: audience claim validation (if needed)
         if claims, ok := token.Claims.(jwt.MapClaims); ok {
-            audience := os.Getenv("AUTH0_AUDIENCE") // Get audience from environment variables
+            audience := os.Getenv("AUTH0_AUDIENCE")
             if audience != "" {
                 if audList, ok := claims["aud"].([]interface{}); ok {
                     validAud := false
@@ -77,10 +71,6 @@ func JWTMiddleware() gin.HandlerFunc {
                     }
                 }
             }
-        } else {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-            c.Abort()
-            return
         }
 
         // Token is valid; continue to the next handler
