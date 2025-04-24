@@ -20,12 +20,15 @@ func GetUserData(db *gorm.DB) gin.HandlerFunc {
 
 func CreateUserIfNotExists(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
+        userToken, _ := c.Get("user")
+        claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
+        sub := claims["sub"].(string)
+
         var req struct {
             GivenName   string `json:"given_name"`
             FamilyName  string `json:"family_name"`
             Email       string `json:"email"`
-            Picture     string `json:"picture"` // not stored, just available
-            Sub         string `json:"sub"`
+            Picture     string `json:"picture"`
         }
 
         if err := c.ShouldBindJSON(&req); err != nil {
@@ -34,14 +37,13 @@ func CreateUserIfNotExists(db *gorm.DB) gin.HandlerFunc {
         }
 
         var existing models.UserData
-        if err := db.Where("auth0_id = ?", req.Sub).First(&existing).Error; err == nil {
-            // User exists — return silently
+        if err := db.Where("auth0_id = ?", sub).First(&existing).Error; err == nil {
             c.JSON(http.StatusOK, gin.H{"message": "User already exists"})
             return
         }
 
         user := models.UserData{
-            Auth0ID: req.Sub,
+            Auth0ID: sub,
             Name:    req.GivenName + " " + req.FamilyName,
             Email:   req.Email,
         }
@@ -57,17 +59,12 @@ func CreateUserIfNotExists(db *gorm.DB) gin.HandlerFunc {
 
 func GetUserBySub(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-        var req struct {
-            Sub string `json:"sub"`
-        }
-
-        if err := c.ShouldBindJSON(&req); err != nil || req.Sub == "" {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Missing sub in request body"})
-            return
-        }
+        userToken, _ := c.Get("user")
+        claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
+        sub := claims["sub"].(string)
 
         var user models.UserData
-        if err := db.Where("auth0_id = ?", req.Sub).First(&user).Error; err != nil {
+        if err := db.Where("auth0_id = ?", sub).First(&user).Error; err != nil {
             c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
             return
         }
@@ -88,6 +85,10 @@ func GetUserBySub(db *gorm.DB) gin.HandlerFunc {
 
 func UpdateUserProfile(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
+        userToken, _ := c.Get("user")
+        claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
+        sub := claims["sub"].(string)
+
         var req struct {
             Name         string `json:"name"`
             Email        string `json:"email"`
@@ -97,7 +98,6 @@ func UpdateUserProfile(db *gorm.DB) gin.HandlerFunc {
             City         string `json:"city"`
             State        string `json:"state"`
             Zip          string `json:"zip"`
-            Sub          string `json:"sub"`
         }
 
         if err := c.ShouldBindJSON(&req); err != nil {
@@ -106,12 +106,11 @@ func UpdateUserProfile(db *gorm.DB) gin.HandlerFunc {
         }
 
         var user models.UserData
-        if err := db.Where("auth0_id = ?", req.Sub).First(&user).Error; err != nil {
+        if err := db.Where("auth0_id = ?", sub).First(&user).Error; err != nil {
             c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
             return
         }
 
-        // Update individual fields directly
         user.Name = req.Name
         user.Email = req.Email
         user.Phone = req.Phone
