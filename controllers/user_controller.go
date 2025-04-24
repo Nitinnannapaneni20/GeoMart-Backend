@@ -8,37 +8,48 @@ import (
     "github.com/golang-jwt/jwt/v4"
 )
 
-func GetUserData(db *gorm.DB) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        var users []models.UserData
-        if err := db.Find(&users).Error; err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-            return
-        }
-        c.JSON(http.StatusOK, users)
+// Helper function to extract sub from token safely
+func extractSub(c *gin.Context) (string, bool) {
+    userToken, exists := c.Get("user")
+    if !exists {
+        return "", false
     }
+
+    jwtToken, ok := userToken.(*jwt.Token)
+    if !ok || jwtToken == nil {
+        return "", false
+    }
+
+    claims, ok := jwtToken.Claims.(jwt.MapClaims)
+    if !ok {
+        return "", false
+    }
+
+    sub, ok := claims["sub"].(string)
+    if !ok || sub == "" {
+        return "", false
+    }
+
+    return sub, true
 }
 
 func CreateUserIfNotExists(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-        userToken, exists := c.Get("user")  // Get user from context
-        if !exists || userToken == nil {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No token provided"})
+        sub, ok := extractSub(c)
+        if !ok {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: Invalid or missing token"})
             return
         }
 
-        claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
-        sub := claims["sub"].(string)
-
         var req struct {
-            GivenName   string `json:"given_name"`
-            FamilyName  string `json:"family_name"`
-            Email       string `json:"email"`
-            Picture     string `json:"picture"`
+            GivenName  string `json:"given_name"`
+            FamilyName string `json:"family_name"`
+            Email      string `json:"email"`
+            Picture    string `json:"picture"`
         }
 
         if err := c.ShouldBindJSON(&req); err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
             return
         }
 
@@ -48,14 +59,14 @@ func CreateUserIfNotExists(db *gorm.DB) gin.HandlerFunc {
             return
         }
 
-        user := models.UserData{
+        newUser := models.UserData{
             Auth0ID: sub,
             Name:    req.GivenName + " " + req.FamilyName,
             Email:   req.Email,
         }
 
-        if err := db.Create(&user).Error; err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        if err := db.Create(&newUser).Error; err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user", "details": err.Error()})
             return
         }
 
@@ -65,14 +76,11 @@ func CreateUserIfNotExists(db *gorm.DB) gin.HandlerFunc {
 
 func GetUserBySub(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-        userToken, exists := c.Get("user")
-        if !exists || userToken == nil {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No token provided"})
+        sub, ok := extractSub(c)
+        if !ok {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: Invalid or missing token"})
             return
         }
-
-        claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
-        sub := claims["sub"].(string)
 
         var user models.UserData
         if err := db.Where("auth0_id = ?", sub).First(&user).Error; err != nil {
@@ -81,29 +89,26 @@ func GetUserBySub(db *gorm.DB) gin.HandlerFunc {
         }
 
         c.JSON(http.StatusOK, gin.H{
-            "name":          user.Name,
-            "email":         user.Email,
-            "phone":         user.Phone,
-            "addressLine1":  user.AddressLine1,
-            "addressLine2":  user.AddressLine2,
-            "city":          user.City,
-            "state":         user.State,
-            "zip":           user.Zip,
-            "sub":           user.Auth0ID,
+            "name":         user.Name,
+            "email":        user.Email,
+            "phone":        user.Phone,
+            "addressLine1": user.AddressLine1,
+            "addressLine2": user.AddressLine2,
+            "city":         user.City,
+            "state":        user.State,
+            "zip":          user.Zip,
+            "sub":          user.Auth0ID,
         })
     }
 }
 
 func UpdateUserProfile(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-        userToken, exists := c.Get("user")
-        if !exists || userToken == nil {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No token provided"})
+        sub, ok := extractSub(c)
+        if !ok {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: Invalid or missing token"})
             return
         }
-
-        claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
-        sub := claims["sub"].(string)
 
         var req struct {
             Name         string `json:"name"`
@@ -117,7 +122,7 @@ func UpdateUserProfile(db *gorm.DB) gin.HandlerFunc {
         }
 
         if err := c.ShouldBindJSON(&req); err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
             return
         }
 
