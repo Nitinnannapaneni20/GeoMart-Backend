@@ -21,7 +21,12 @@ func GetUserData(db *gorm.DB) gin.HandlerFunc {
 
 func CreateUserIfNotExists(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-        userToken, _ := c.Get("user")
+        userToken, exists := c.Get("user")  // Get user from context
+        if !exists || userToken == nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No token provided"})
+            return
+        }
+
         claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
         sub := claims["sub"].(string)
 
@@ -60,7 +65,12 @@ func CreateUserIfNotExists(db *gorm.DB) gin.HandlerFunc {
 
 func GetUserBySub(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-        userToken, _ := c.Get("user")
+        userToken, exists := c.Get("user")
+        if !exists || userToken == nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No token provided"})
+            return
+        }
+
         claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
         sub := claims["sub"].(string)
 
@@ -86,7 +96,12 @@ func GetUserBySub(db *gorm.DB) gin.HandlerFunc {
 
 func UpdateUserProfile(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-        userToken, _ := c.Get("user")
+        userToken, exists := c.Get("user")
+        if !exists || userToken == nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No token provided"})
+            return
+        }
+
         claims := userToken.(*jwt.Token).Claims.(jwt.MapClaims)
         sub := claims["sub"].(string)
 
