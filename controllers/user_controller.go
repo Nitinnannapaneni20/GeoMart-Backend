@@ -8,6 +8,17 @@ import (
     "github.com/golang-jwt/jwt/v4"
 )
 
+func GetUserData(db *gorm.DB) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        var users []models.UserData
+        if err := db.Find(&users).Error; err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+            return
+        }
+        c.JSON(http.StatusOK, users)
+    }
+}
+
 // Helper function to extract sub from token safely
 func extractSub(c *gin.Context) (string, bool) {
     userToken, exists := c.Get("user")
