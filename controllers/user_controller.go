@@ -5,6 +5,7 @@ import (
     "GeoMart-Backend/models"
     "github.com/gin-gonic/gin"
     "gorm.io/gorm"
+    "github.com/golang-jwt/jwt/v4"
 )
 
 func GetUserData(db *gorm.DB) gin.HandlerFunc {
