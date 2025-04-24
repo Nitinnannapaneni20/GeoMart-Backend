@@ -4,11 +4,11 @@ import (
     "fmt"
     "net/http"
     "time"
+    "os"
 
     "github.com/gin-gonic/gin"
     "github.com/golang-jwt/jwt/v4"
     "github.com/MicahParks/keyfunc"
-    "os"
 )
 
 // JWKS for fetching Auth0's public keys
@@ -34,7 +34,7 @@ func InitializeJWTMiddleware(issuerURL string) {
     fmt.Println("JWKS initialized successfully.")
 }
 
-// JWTMiddleware validates the JWT and protects routes
+// JWTMiddleware validates the JWT from Authorization header (not cookie)
 func JWTMiddleware() gin.HandlerFunc {
     return func(c *gin.Context) {
         // Extract the token from the Authorization header
@@ -84,6 +84,7 @@ func JWTMiddleware() gin.HandlerFunc {
         }
 
         // Token is valid; continue to the next handler
+        c.Set("user", token)
         c.Next()
     }
 }
