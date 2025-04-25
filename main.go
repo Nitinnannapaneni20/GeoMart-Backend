@@ -89,6 +89,7 @@ func main() {
     routes.ProductRoutes(router, db)
     routes.LocationRoutes(router, db)
     routes.SpecialsRoutes(router, db)
+    routes.OrderRoutes(router, db)
     // Start the server
     log.Println("Starting server on port :8080")
     if err := router.Run("0.0.0.0:8080"); err != nil {
