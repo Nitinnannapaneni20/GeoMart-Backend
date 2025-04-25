@@ -8,6 +8,6 @@ import (
 )
 
 func OrderRoutes(router *gin.Engine, db *gorm.DB) {
-    router.POST("/api/order/save", controllers.SaveOrder(db))
+    router.POST("/api/order/save", middleware.JWTMiddleware(), controllers.SaveOrder(db))
     router.GET("/api/orders/user", middleware.JWTMiddleware(), controllers.GetOrdersByUser(db))
 }
