@@ -13,5 +13,6 @@ func SetupRoutes(db *gorm.DB) *gin.Engine {
     CategoryRoutes(router, db)
     ProductTypeRoutes(router, db)
     ProductRoutes(router, db)
+    OrderRoutes(router, db)
     return router
 }
