@@ -11,13 +11,13 @@ type Location struct{
 
 type Category struct {
     ID   uint   `gorm:"primaryKey"`
-    Name string `gorm:"not null;unique"`
+    Name string `gorm:"not null"`
     LocationID uint   `gorm:"not null"`
 }
 
 type ProductType struct {
     ID         uint   `gorm:"primaryKey"`
-    Name       string `gorm:"not null;unique"`
+    Name       string `gorm:"not null"`
     CategoryID uint   `gorm:"not null"`
     LocationID uint   `gorm:"not null"`
 }
