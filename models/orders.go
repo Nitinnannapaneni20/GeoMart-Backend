@@ -13,5 +13,13 @@ type Order struct {
     Currency      string         `gorm:"default:GBP" json:"currency"`
     PaymentStatus string         `gorm:"default:COMPLETED" json:"payment_status"`
     TransactionID string         `gorm:"unique;not null" json:"transaction_id"`
+    Name          string         `gorm:"size:255" json:"name"`
+    Email         string         `gorm:"size:255" json:"email"`
+    Phone         string         `gorm:"size:50" json:"phone"`
+    AddressLine1  string         `gorm:"size:255" json:"addressLine1"`
+    AddressLine2  string         `gorm:"size:255" json:"addressLine2"`
+    City          string         `gorm:"size:100" json:"city"`
+    State         string         `gorm:"size:100" json:"state"`
+    Zip           string         `gorm:"size:20" json:"zip"`
     CreatedAt     time.Time      `json:"created_at"`
 }
